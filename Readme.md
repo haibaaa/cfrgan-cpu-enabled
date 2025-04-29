@@ -1,3 +1,5 @@
+Original Repository: https://github.com/yeongjoonJu/CFR-GAN
+
 CFR-GAN generate_pairs.py Change Log
 This document outlines the changes made to generate_pairs.py in the CFR-GAN project to resolve errors encountered during execution on a CPU-based environment (Python 3.8.18, torch==1.6.0+cpu, numpy==1.19.2, pytorch3d==0.3.0). The changes address type mismatches, syntax errors, and compatibility issues to enable processing of 7 input images (test_imgs/input/) and generate _rot.jpg, _gui.jpg, and _occ.jpg outputs in test_imgs/output/.
 
