@@ -1,3 +1,80 @@
+# CFR-GAN
+
+## Overview
+This repository contains the implementation of CFR-GAN, a face rotation model that can generate realistic face images at different angles.
+
+## Requirements
+- Python 3.8+
+- PyTorch
+- OpenCV
+- NumPy
+- tqdm
+- faceParsing
+- mmRegressor
+- pytorch3d
+
+## Installation
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/CFR-GAN.git
+cd CFR-GAN
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Download required models:
+- Download the BFM face model from: https://faces.dmi.unibas.ch/bfm/bfm2017.html
+- Place the downloaded `BFM_model_80.mat` file in `mmRegressor/BFM/` directory
+- Download the generator model `CFRNet_G_ep55_vgg.pth` and place it in `saved_models/` directory
+- The 3D estimator model `trained_weights_occ_3d.pth` should already be in the `saved_models/` directory
+
+## Usage
+
+### Inference
+To run inference on a set of images:
+
+```bash
+python inference.py --img_path test_imgs/input --save_path test_imgs/output
+```
+
+Arguments:
+- `--img_path`: Path to input images directory (required)
+- `--save_path`: Path to save output images (required)
+- `--aligner`: Face alignment method (default: 'None')
+- `--generator_path`: Path to generator model (default: "saved_models/CFRNet_G_ep55_vgg.pth")
+- `--estimator_path`: Path to 3D estimator model (default: "saved_models/trained_weights_occ_3d.pth")
+- `--face_model_path`: Path to face model (default: "mmRegressor/BFM/BFM_model_80.mat")
+- `--batch_size`: Batch size for processing (default: 4)
+
+### Model Architecture
+The CFRNet model consists of:
+- Initial convolution layers for both rotated and guidance images
+- Attention Feature Difference (AFD) module
+- Downsampling layers with gated convolutions
+- Residual blocks
+- Upsampling layers
+- Final convolution layer with tanh activation
+- Mixing layer for mask generation
+
+### Image Processing Pipeline
+1. Load and preprocess input images using `Estimator3D.load_images()`
+2. Generate testing pairs with specific pose using `generate_testing_pairs()`
+3. Normalize and permute dimensions for model input
+4. Run inference through CFRNet
+5. Process and save output images
+
+## Notes
+- The model currently runs on CPU by default
+- Input images should be in JPG or PNG format
+- The output images will be saved in the specified save path
+- The rotation angle is set to [5.0, 0.0, 0.0] by default
+
+## License
+[Your License Here]
+
 CFR-GAN generate_pairs.py Change Log
 This document outlines the changes made to generate_pairs.py in the CFR-GAN project to resolve errors encountered during execution on a CPU-based environment (Python 3.8.18, torch==1.6.0+cpu, numpy==1.19.2, pytorch3d==0.3.0). The changes address type mismatches, syntax errors, and compatibility issues to enable processing of 7 input images (test_imgs/input/) and generate _rot.jpg, _gui.jpg, and _occ.jpg outputs in test_imgs/output/.
 
