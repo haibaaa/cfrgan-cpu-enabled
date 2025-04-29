@@ -1,0 +1,6 @@
+mmRegressor/BFM/BFM_model_80.mat
+saved_models/trained_weights_occ_3d.pth
+faceParsing/model_final_diss.pth
+saved_models/*.pth
+faceParsing/*.pth
+mmRegressor/BFM/*.mat
