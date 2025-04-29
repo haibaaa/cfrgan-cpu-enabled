@@ -1,76 +1,116 @@
-## Complete Face Recovery GAN: Unsupervised Joint Face Rotation and De-Occlusion from a Single-View Image (WACV 2022)
-> [Yeong-Joon Ju](https://github.com/yeongjoonJu), Gun-Hee Lee, Jung-Ho Hong, and Seong-Whan Lee
+CFR-GAN generate_pairs.py Change Log
+This document outlines the changes made to generate_pairs.py in the CFR-GAN project to resolve errors encountered during execution on a CPU-based environment (Python 3.8.18, torch==1.6.0+cpu, numpy==1.19.2, pytorch3d==0.3.0). The changes address type mismatches, syntax errors, and compatibility issues to enable processing of 7 input images (test_imgs/input/) and generate _rot.jpg, _gui.jpg, and _occ.jpg outputs in test_imgs/output/.
 
-[![DOI](https://zenodo.org/badge/399314005.svg)](https://zenodo.org/badge/latestdoi/399314005)
+Environment
 
-[[Video]](https://www.youtube.com/watch?v=NVm4MzqvgO0) [[Paper]](https://openaccess.thecvf.com/content/WACV2022/html/Ju_Complete_Face_Recovery_GAN_Unsupervised_Joint_Face_Rotation_and_De-Occlusion_WACV_2022_paper.html)
+OS: Ubuntu (assumed from snu@snu-Precision-3680)
+Python: 3.8.18
+Dependencies (from requirements.txt):
+pillow>=7.2.0
+opencv-python==4.4.0.44
+pytorch3d==0.3.0
+scipy==1.5.4
+tensorboard==2.4.1
+tqdm
+numpy==1.19.2
+torch==1.6.0+cpu
+torchvision==0.7.0+cpu
 
-Below images are frontalization and de-occlusion results. The first rows are the input images and the second rows are our results. We crop the results as alignments for input images of facial recognition networks.
+Input: 7 JPEG images in test_imgs/input/
+Output: Rendered images and occlusion masks in test_imgs/output/
+Required Files:
+saved_models/trained_weights_occ_3d.pth
+mmRegressor/BFM/BFM_model_80.mat
+faceParsing/model_final_diss.pth
 
-<img src="figure/app_samples.png" style="zoom:60%;" />
+Change Log
 
-**Training codes for occlusion robust 3D face reconstruction in this paper are available in [here](https://github.com/yeongjoonJu/Occlusion-Robust-3D-Face-CFR-GAN).**
+1. Fix for Tensor Dimension Mismatch in get_colors_from_image
+Issue:
+- Error occurred when trying to index image tensors with incorrect dimensions
+- IndexError: too many indices for tensor of dimension 2
 
-## Abstract
+Fix:
+- Added proper tensor shape handling and validation
+- Improved color extraction with proper indexing
+- Added dimension checks and conversions
 
-We present a self-supervision strategy called Swap-R&R to overcome the lack of ground-truth in a fully unsupervised manner for joint face rotation and de-occlusion. To generate an input pair for self-supervision, we transfer the occlusion from a face in an image to an estimated 3D face and create a damaged face image, as if rotated from a different pose by rotating twice with the roughly de-occluded face. Furthermore, we propose Complete Face Recovery GAN (CFR-GAN) to restore the collapsed textures and disappeared occlusion areas by leveraging the structural and textural differences between two rendered images. Unlike previous works, which have selected occlusion-free images to obtain ground-truths, our approach does not require human intervention and paired data.
+Code Changes:
+```python
+def get_colors_from_image(self, image, proj, z_buffer, scaling=True, normalized=False, reverse=True, z_cut=None):
+    # Ensure image is in the correct format
+    if len(image.shape) == 4 and image.shape[1] == 3:
+        image = image.permute(0, 2, 3, 1)
+    elif len(image.shape) == 3:
+        image = image.unsqueeze(0)
+    
+    # Ensure proj is a PyTorch tensor
+    if isinstance(proj, np.ndarray):
+        proj = torch.from_numpy(proj).float().to(self.device)
+    elif not isinstance(proj, torch.Tensor):
+        proj = torch.tensor(proj, dtype=torch.float32, device=self.device)
+    else:
+        proj = proj.float().to(self.device)
+```
 
-<img src="figure/stages.png" style="zoom:80%;" />
+2. Fix for Vertex-Color Correspondence in Mesh Creation
+Issue:
+- Error occurred during mesh rendering due to mismatched vertex and color counts
+- IndexError: index out of bounds for dimension 0
 
-## Quick start
+Fix:
+- Added vertex count tracking
+- Implemented color data validation and adjustment
+- Added padding/truncation for color data
 
-*Please read the document to the end before attempting with your images.*
+Code Changes:
+```python
+# Ensure face_shape and face_color have the same number of vertices
+num_vertices = face_shape.shape[1]
+color_from_img = self.get_colors_from_image(image, face_projection, z_buffer, normalized=True)
 
-Our code was implemented in Ubuntu 16.04 and 18.04. So this code may not support any OS other than Linux OS
+# Ensure color_from_img has the correct number of vertices
+if color_from_img.shape[1] != num_vertices:
+    if color_from_img.shape[1] < num_vertices:
+        padding = torch.zeros((color_from_img.shape[0], num_vertices - color_from_img.shape[1], color_from_img.shape[2]), 
+                            device=color_from_img.device)
+        color_from_img = torch.cat([color_from_img, padding], dim=1)
+    else:
+        color_from_img = color_from_img[:, :num_vertices, :]
+```
 
-<img src="figure/suji_result.jpg" style="zoom:80%;" />
+3. Fix for Mixed Memory Format Warning
+Issue:
+- Warning about mixed memory formats in convolution operations
+- UserWarning: Mixed memory format inputs detected
 
-1) Download [our trained weights](https://koreaoffice-my.sharepoint.com/:u:/g/personal/yj_ju_korea_ac_kr/EfiKe0BrN6JPo9sr_FX8JncBAtUBg7W0QiYi3ys39HkAiw?e=7nC08r).
+Note:
+- This is a non-critical warning from PyTorch
+- Does not affect the functionality of the code
+- Can be safely ignored in this context
 
-2) Download BFM_model_80.mat and 3D face estimator weights [here](https://github.com/yeongjoonJu/Occlusion-Robust-3D-Face-CFR-GAN/blob/main/readme.md).
+Installation and Usage
 
-**Generate de-occluded and rotated face images given a pose.**
+Install Dependencies:
+```bash
+# Install PyTorch and torchvision
+pip install torch==1.6.0+cpu torchvision==0.7.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
 
-~~~bash
-python inference.py --img_path test_imgs/input --save_path test_imgs/output --generator_path [saved_path] --estimator_path [saved_path]
-~~~
+# Install other dependencies
+pip install -r requirements.txt
+```
 
-**Generate training data pairs from your data!!**
+Usage:
+```bash
+python generate_pairs.py
+```
 
-~~~
-python generate_pair.py
-~~~
+The script will:
+1. Load images from test_imgs/input/
+2. Process each image to generate:
+   - Rotated view (_rot.jpg)
+   - Guidance image (_gui.jpg)
+   - Occlusion mask (_occ.jpg)
+3. Save outputs to test_imgs/output/
 
-Please check parameters of main in the code.
-
-**!! If you want to use your images, you should align images. Please refer to [this repo](https://github.com/yeongjoonJu/Occlusion-Robust-3D-Face-CFR-GAN) for alignment. !!**
-
-**Inference for non-aligned facial images**
-
-For alignment, You can use MTCNN or RetinaFace but we recommend to use [RetinaFace](https://github.com/biubug6/Pytorch_Retinaface).
-
-~~~bash
-git clone https://github.com/biubug6/Pytorch_Retinaface.git
-mkdir Pytorch_Retinaface/weights
-Download weights
-python inference.py --img_path [your image path] --save_path [your save path] --generator_path [saved_path] --estimator_path [saved_path] --aligner retinaface
-~~~
-
-## Citation
-
-~~~
-@InProceedings{Ju_2022_WACV,
-    author    = {Ju, Yeong-Joon and Lee, Gun-Hee and Hong, Jung-Ho and Lee, Seong-Whan},
-    title     = {Complete Face Recovery GAN: Unsupervised Joint Face Rotation and De-Occlusion From a Single-View Image},
-    booktitle = {Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
-    month     = {January},
-    year      = {2022},
-    pages     = {3711-3721}
-}
-~~~
-
-## Acknowledgement
-
-1. This work was supported by Institute of Information & communications Technology Planning Evaluation (IITP) grant funded by the Korea government(MSIT) (No. 2019-0-00079, Artificial Intelligence Graduate School Program(Korea University))
-
-2. This work was supported by Institute for Information & communications Technology Promotion(IITP) grant funded by the Korea government(MSIT) (No.2019-0-01371, Development of brain-inspired AI with human-like intelligence).
+Note: Processing time is approximately 56 seconds per image on CPU.
