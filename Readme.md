@@ -23,6 +23,40 @@ saved_models/trained_weights_occ_3d.pth
 mmRegressor/BFM/BFM_model_80.mat
 faceParsing/model_final_diss.pth
 
+Environment Setup with pyenv
+
+To set up Python 3.8 using pyenv:
+
+1. Install Prerequisites:
+```bash
+sudo apt update && sudo apt install -y \
+  make build-essential libssl-dev zlib1g-dev libbz2-dev \
+  libreadline-dev libsqlite3-dev wget curl llvm \
+  libncurses5-dev libncursesw5-dev xz-utils tk-dev \
+  libffi-dev liblzma-dev python-openssl git
+```
+
+2. Install pyenv:
+```bash
+git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init --path)"' >> ~/.bashrc
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+3. Install Python 3.8:
+```bash
+pyenv install 3.8.18
+pyenv global 3.8.18
+```
+
+Verify the installation:
+```bash
+python --version  # Should show Python 3.8.18
+```
+
 Change Log
 
 1. Fix for Tensor Dimension Mismatch in get_colors_from_image
@@ -114,3 +148,4 @@ The script will:
 3. Save outputs to test_imgs/output/
 
 Note: Processing time is approximately 56 seconds per image on CPU.
+    
